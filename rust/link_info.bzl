@@ -7,6 +7,7 @@
 
 # Implementation of the Rust build rules.
 
+load("@prelude//decls:rust_common.bzl", "rust_common")
 load(
     "@prelude//:artifact_tset.bzl",
     "ArtifactTSet",
@@ -173,11 +174,13 @@ def enable_link_groups(
 # Returns all first-order dependencies.
 def _do_resolve_deps(
         deps: list[Dependency],
+        proc_macros_all: list[Dependency],
         named_deps: dict[str, Dependency],
         flagged_deps: list[(Dependency, list[str])] = []) -> list[RustDependency]:
     return [
         RustDependency(name = name, dep = dep, flags = flags)
         for name, dep, flags in [(None, dep, []) for dep in deps] +
+                                [(None, dep, []) for dep in proc_macros_all] +
                                 [(name, dep, []) for name, dep in named_deps.items()] +
                                 [(None, dep, flags) for dep, flags in flagged_deps]
     ]
@@ -189,6 +192,7 @@ def resolve_deps(
     # `prebuilt_rust_library` rules, which don't have those attrs.
     dependencies = _do_resolve_deps(
         deps = ctx.attrs.deps,
+        proc_macros_all = ctx.plugins[rust_common.RustProcMacro],
         named_deps = getattr(ctx.attrs, "named_deps", {}),
         flagged_deps = getattr(ctx.attrs, "flagged_deps", []),
     )
@@ -196,6 +200,7 @@ def resolve_deps(
     if include_doc_deps:
         dependencies.extend(_do_resolve_deps(
             deps = ctx.attrs.doc_deps,
+            proc_macros_all = [],
             named_deps = getattr(ctx.attrs, "doc_named_deps", {}),
         ))
 
