@@ -43,7 +43,9 @@ def _system_cxx_toolchain_impl(ctx: AnalysisContext):
     shared_library_name_format = "lib{}.so"
     shared_library_versioned_name_format = "lib{}.so.{}"
     additional_linker_flags = []
-    if host_info().os.is_macos:
+    if linker == "rust-lld":
+        pass
+    elif host_info().os.is_macos:
         archiver_supports_argfiles = False
         linker_type = "darwin"
         pic_behavior = PicBehavior("always_enabled")
