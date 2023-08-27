@@ -17,6 +17,9 @@ _DEFAULT_TRIPLE = select({
         "config//cpu:arm64": "aarch64-apple-darwin",
         "config//cpu:x86_64": "x86_64-apple-darwin",
     }),
+    "config//os:none": select({
+        "config//cpu:wasm32": "wasm32-unknown-unknown"
+    }),
     "config//os:windows": select({
         "config//cpu:arm64": select({
             # Rustup's default ABI for the host on Windows is MSVC, not GNU.
