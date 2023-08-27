@@ -13,6 +13,28 @@ load(":common.bzl", "LinkableDepType", "Linkage", "buck", "prelude_rule")
 load(":native_common.bzl", "native_common")
 load(":rust_common.bzl", "rust_common")
 
+def _propagation_impl(ctx):
+    return [
+        DefaultInfo(default_outputs = []),
+        # During analysis for rust libraries, the providers for proc macros will appear in
+        # `ctx.plugins`. However, this includes the transitive and direct proc macro deps, as
+        # well as the transitive and direct proc macro doc-deps. Analysis needs to be able to
+        # distinguish between all of these though.
+        #
+        # This dummy provider is passed to allow for precisely that. Generally, it will be passed
+        # everywhere where the providers of Rust proc macros are currently passed. That ensures that
+        # analysis on `rust_library` and `rust_binary` have all the information they need about
+        # where the plugin "entered the dependency graph."
+        rust_common.RustProcMacroMarker(actual = ctx.attrs.actual),
+    ]
+
+rust_proc_macro_propagation = rule(
+    impl = _propagation_impl,
+    attrs = {
+        "actual": attrs.plugin_dep(kind = rust_common.RustProcMacro),
+    },
+)
+
 prebuilt_rust_library = prelude_rule(
     name = "prebuilt_rust_library",
     impl = prebuilt_rust_library_impl,
@@ -179,6 +201,7 @@ rust_binary = prelude_rule(
         rust_common.workspaces_arg() |
         buck.allow_cache_upload_arg()
     ),
+    uses_plugins = [rust_common.RustProcMacro],
 )
 
 rust_library = prelude_rule(
@@ -234,7 +257,7 @@ rust_library = prelude_rule(
         _RUST_COMMON_ATTRIBUTES |
         {
             "crate_dynamic": attrs.option(attrs.dep(), default = None),
-            "doc_deps": attrs.list(attrs.dep(), default = []),
+            "doc_deps": attrs.list(attrs.dep(pulls_plugins = [rust_common.RustProcMacro]), default = []),
             "doc_env": attrs.dict(key = attrs.string(), value = attrs.option(attrs.arg()), sorted = False, default = {}),
             "doc_linker_flags": attrs.list(attrs.arg(), default = []),
             "doc_named_deps": attrs.dict(key = attrs.string(), value = attrs.dep(), sorted = False, default = {}),
@@ -249,6 +272,7 @@ rust_library = prelude_rule(
         rust_common.toolchains_args() |
         rust_common.workspaces_arg()
     ),
+    uses_plugins = [rust_common.RustProcMacro],
 )
 
 rust_test = prelude_rule(
@@ -326,6 +350,7 @@ rust_test = prelude_rule(
         rust_common.toolchains_args() |
         rust_common.workspaces_arg()
     ),
+    uses_plugins = [rust_common.RustProcMacro],
 )
 
 rust_rules = struct(

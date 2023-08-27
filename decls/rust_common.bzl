@@ -7,9 +7,19 @@
 
 load(":toolchains_common.bzl", "toolchains_common")
 
+# From the RFC
+RustProcMacro = plugins.kind()
+# From the RFC
+RustProcMacroMarker = provider(
+    doc = "Following the RFC",
+    fields = [
+        "actual",
+    ],
+)
+
 def _deps_arg():
     return {
-        "deps": attrs.list(attrs.dep(), default = [], doc = """
+        "deps": attrs.list(attrs.dep(pulls_and_pushes_plugins = [RustProcMacro]), default = [], doc = """
     The set of dependencies of this rule. Currently, this supports rust\\_library
      and prebuilt\\_rust\\_library rules.
 """),
@@ -132,4 +142,6 @@ rust_common = struct(
     named_deps_arg = _named_deps_arg,
     toolchains_args = _toolchains_args,
     workspaces_arg = _workspaces_arg,
+    RustProcMacro = RustProcMacro,
+    RustProcMacroMarker = RustProcMacroMarker,
 )
